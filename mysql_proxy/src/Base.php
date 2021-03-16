@@ -113,6 +113,7 @@ class Base
      */
     private function setConnPoolParams(array $value, array &$new_params, array &$old_params = [])
     {
+
         if (isset($value['maxConns'])) {
             $new_params['maxConns']      = $this ->evalConfigParam($value['maxConns'], true);
             if (!empty($old_params)) {
@@ -147,7 +148,7 @@ class Base
      *
      * @return float|mixed
      */
-    private function evalConfigParam(string $value, bool $floor_worker_num = false)
+    private function evalConfigParam(string|int $value, bool $floor_worker_num = false)
     {
         if ($floor_worker_num) {
             $param = floor(

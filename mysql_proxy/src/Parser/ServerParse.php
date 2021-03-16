@@ -1,15 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Proxy\Parser;
 
 use function Proxy\Helper\startsWith;
-use SMProxy\Parser\Util\ParseUtil;
+use Proxy\Parser\Util\ParseUtil;
 
-/**
- * Author: Louis Livi <574747417@qq.com>
- * Date: 2018/11/2
- * Time: 下午4:08.
- */
 final class ServerParse
 {
     const OTHER = -1;
@@ -177,7 +172,7 @@ final class ServerParse
     }
 
 
-    public static function lCheck(string $stmt, int $offset)
+    public static function lCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 3) {
             $c1 = $stmt[++$offset];
@@ -195,7 +190,7 @@ final class ServerParse
         return self::OTHER;
     }
 
-    private static function migrateCheck(string $stmt, int $offset)
+    private static function migrateCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 7) {
             $c1 = $stmt[++$offset];
@@ -219,7 +214,7 @@ final class ServerParse
     }
 
     //truncate
-    private static function tCheck(string $stmt, int $offset)
+    private static function tCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 7) {
             $c1 = $stmt[++$offset];
@@ -246,7 +241,7 @@ final class ServerParse
     }
 
     //alter table/view/...
-    private static function aCheck(string $stmt, int $offset)
+    private static function aCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 4) {
             $c1 = $stmt[++$offset];
@@ -266,7 +261,7 @@ final class ServerParse
     }
 
     //create table/view/...
-    private static function createCheck(string $stmt, int $offset)
+    private static function createCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 5) {
             $c1 = $stmt[++$offset];
@@ -288,7 +283,7 @@ final class ServerParse
     }
 
     //drop
-    private static function dropCheck(string $stmt, int $offset)
+    private static function dropCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 3) {
             $c1 = $stmt[++$offset];
@@ -306,26 +301,19 @@ final class ServerParse
     }
 
     // delete or drop
-    public static function deleteOrdCheck(string $stmt, int $offset)
+    public static function deleteOrdCheck(string $stmt, int $offset): int
     {
         $sqlType = self::OTHER;
-        switch ($stmt[$offset + 1]) {
-            case 'E':
-            case 'e':
-                $sqlType = self::dCheck($stmt, $offset);
-                break;
-            case 'R':
-            case 'r':
-                $sqlType = self::dropCheck($stmt, $offset);
-                break;
-            default:
-                $sqlType = self::OTHER;
-        }
+        $sqlType = match ($stmt[$offset + 1]) {
+            'E', 'e' => self::dCheck($stmt, $offset),
+            'R', 'r' => self::dropCheck($stmt, $offset),
+            default => self::OTHER,
+        };
         return $sqlType;
     }
 
     // HELP' '
-    public static function helpCheck(string $stmt, int $offset)
+    public static function helpCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 3) {
             $c1 = $stmt[++$offset];
@@ -340,7 +328,7 @@ final class ServerParse
     }
 
     // EXPLAIN' '
-    public static function explainCheck(string $stmt, int $offset)
+    public static function explainCheck(string $stmt, int $offset): int
     {
         if (strlen($stmt) > $offset + 6) {
             $c1 = $stmt[++$offset];

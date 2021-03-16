@@ -33,9 +33,10 @@ abstract class BaseServer extends Base
             } else {
                 $ports = [19016];
             }
+
             $this->server = new \swoole_server(
                 CONFIG['server']['host'],
-                $ports[0],
+                (int)$ports[0],
                 CONFIG['server']['mode'],
                 CONFIG['server']['sock_type']
             );

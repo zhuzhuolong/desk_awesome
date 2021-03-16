@@ -23,7 +23,7 @@ class HelpMessage
 LOGO;
 
 
-    public static $version = 'SMProxy version: ' . SMPROXY_VERSION . PHP_EOL;
+    public static $version = 'Proxy version: ' . SMPROXY_VERSION . PHP_EOL;
 
     /**
      * @var string

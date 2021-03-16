@@ -1,12 +1,7 @@
-<?php
+<?php declare(strict_types=1);
 
-namespace SMProxy\Parser\Util;
+namespace Proxy\Parser\Util;
 
-/**
- * Author: Louis Livi <574747417@qq.com>
- * Date: 2018/11/3
- * Time: 上午9:30.
- */
 final class ParseUtil
 {
     public static function isEOF($c)
@@ -116,7 +111,7 @@ final class ParseUtil
                         $sb .= $c;
                 }
             } elseif ('"' == $c) {
-                if ($offset + 1 < strlen($stmt) && '"' == $stmt[$offset + 1]) {
+                if ($offset + 1 < strlen((string)$stmt) && '"' == $stmt[$offset + 1]) {
                     ++$offset;
                     $sb .= '"';
                 } else {

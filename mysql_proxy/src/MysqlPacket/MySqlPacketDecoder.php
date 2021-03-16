@@ -4,7 +4,7 @@ namespace Proxy\MysqlPacket;
 
 use function Proxy\Helper\getBytes;
 use Proxy\Log\Log;
-use Proxy\MysqlPacket\Util\ByteUtil;
+use Proxy\MysqlPacket\ByteUtil;
 use Proxy\ProxyException;
 
 /**

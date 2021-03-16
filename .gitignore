@@ -2,3 +2,4 @@ Wallet/node_modules
 .idea
 .vscode
 mysql_proxy/vendor
+/mysql_proxy/logs/

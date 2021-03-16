@@ -1,7 +1,6 @@
 <?php declare(strict_types=1);
 
 namespace Proxy;
-use Proxy\BaseServer;
 use Proxy\Handler\Frontend\FrontendAuthenticator;
 use Proxy\Handler\Frontend\FrontendConnection;
 use Proxy\MysqlPacket\ProxyPacket;

@@ -1,8 +1,6 @@
 <?php
 
-namespace Proxy\MysqlPacket\Util;
-
-use Proxy\MysqlPacket\MySQLMessage;
+namespace Proxy\MysqlPacket;
 
 class ByteUtil
 {

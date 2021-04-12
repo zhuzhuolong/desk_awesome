@@ -4,6 +4,10 @@ namespace Proxy;
 use Proxy\Handler\Frontend\FrontendAuthenticator;
 use Proxy\Handler\Frontend\FrontendConnection;
 use Proxy\MysqlPacket\ProxyPacket;
+use Swoole\Coroutine\Client;
+use Swoole\Coroutine\MySQL;
+use Swoole\Table;
+use swoole_server;
 use function Proxy\Helper\array_copy;
 use function Proxy\Helper\getBytes;
 use function Proxy\Helper\getMysqlPackSize;
@@ -27,13 +31,13 @@ use Swoole\Coroutine;
 
 class ProxyServer extends BaseServer
 {
-    public $source;
-    public $mysqlClient;
-    private $mysqlServer;
-    protected $dbConfig;
-    public $halfPack;
-    public $stmtId = [];
-    public $stmtPrepare = [];
+    public mixed $source;
+    public mixed $mysqlClient;
+    private mixed $mysqlServer;
+    protected mixed $dbConfig;
+    public mixed $halfPack;
+    public array $stmtId = [];
+    public array $stmtPrepare = [];
 
     /**
      * ProxyServer constructor.
@@ -44,11 +48,11 @@ class ProxyServer extends BaseServer
                 return eval('return ' . $v . ';');
             }, array_column(CONFIG['database']['databases'], 'maxConns'))) * 100;
         #初始化内存table
-        $this->mysqlServer = new \Swoole\Table($size, 1);
-        $this->mysqlServer->column('threadId', \Swoole\Table::TYPE_INT, 8);
-        $this->mysqlServer->column('serverVersion', \Swoole\Table::TYPE_STRING, 128);
-        $this->mysqlServer->column('pluginName', \Swoole\Table::TYPE_STRING, 128);
-        $this->mysqlServer->column('serverStatus', \Swoole\Table::TYPE_INT, 8);
+        $this->mysqlServer = new Table($size, 1);
+        $this->mysqlServer->column('threadId', Table::TYPE_INT, 8);
+        $this->mysqlServer->column('serverVersion', Table::TYPE_STRING, 128);
+        $this->mysqlServer->column('pluginName', Table::TYPE_STRING, 128);
+        $this->mysqlServer->column('serverStatus', Table::TYPE_INT, 8);
         $this->mysqlServer->create();
         parent::__construct();
     }
@@ -59,7 +63,7 @@ class ProxyServer extends BaseServer
      * @param $server
      * @param $fd
      */
-    public function onConnect(\swoole_server $server, int $fd)
+    public function onConnect(swoole_server $server, int $fd)
     {
         // 生成认证数据
         $Authenticator = new FrontendAuthenticator();
@@ -77,7 +81,7 @@ class ProxyServer extends BaseServer
      * @param $reactor_id
      * @param $data
      */
-    public function onReceive(\swoole_server $server, int $fd, int $reactor_id, string $data)
+    public function onReceive(swoole_server $server, int $fd, int $reactor_id, string $data)
     {
         self::go(function () use ($server, $fd, $reactor_id, $data) {
             if (!isset($this->source[$fd]->auth)) {
@@ -155,11 +159,11 @@ class ProxyServer extends BaseServer
     /**
      * 客户端断开连接.
      *
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      *
      */
-    public function onClose(\swoole_server $server, int $fd)
+    public function onClose(swoole_server $server, int $fd)
     {
         if (isset($this->source[$fd])) {
             unset($this->source[$fd]);
@@ -219,10 +223,10 @@ class ProxyServer extends BaseServer
     /**
      * WorkerStart.
      *
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $worker_id
      */
-    public function onWorkerStart(\swoole_server $server, int $worker_id)
+    public function onWorkerStart(swoole_server $server, int $worker_id)
     {
         self::go(function () use ($server, $worker_id) {
             if ($worker_id >= CONFIG['server']['swoole']['worker_num']) {
@@ -272,7 +276,7 @@ class ProxyServer extends BaseServer
                 continue;
             }
             //测试数据库host port是否可连接
-            $test_client = new \Swoole\Coroutine\Client(SWOOLE_SOCK_TCP);
+            $test_client = new Client(SWOOLE_SOCK_TCP);
             if (!$test_client->connect($value['serverInfo']['host'], $value['serverInfo']['port'], $value['serverInfo']['timeout'])) {
                 throw new MySQLException('connect ' . explode(DB_DELIMITER, $key)[0] .
                     ' ' . explode(DB_DELIMITER, $key)[1] . ' failed, ErrorCode: ' . $test_client->errCode . "\n");
@@ -284,7 +288,7 @@ class ProxyServer extends BaseServer
             }
             while ($value['startConns']) {
                 //初始化startConns
-                $mysql = new \Swoole\Coroutine\MySQL();
+                $mysql = new MySQL();
                 $mysql->connect([
                     'host'     => CONFIG['server']['host'],
                     'user'     => CONFIG['server']['user'],
@@ -321,14 +325,14 @@ class ProxyServer extends BaseServer
     /**
      * 验证账号
      *
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      * @param string $user
-     * @param string $password
+     * @param array $password
      *
      * @return bool
      */
-    private function checkAccount(\swoole_server $server, int $fd, string $user, array $password)
+    private function checkAccount(swoole_server $server, int $fd, string $user, array $password): bool
     {
         $checkPassword = $this->source[$fd]
             ->checkPassword($password, CONFIG['server']['password']);
@@ -338,13 +342,13 @@ class ProxyServer extends BaseServer
     /**
      * 验证账号失败
      *
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      * @param int $serverId
      *
      * @throws MySQLException
      */
-    private function accessDenied(\swoole_server $server, int $fd, int $serverId)
+    private function accessDenied(swoole_server $server, int $fd, int $serverId)
     {
         $message = 'Proxy@access denied for user \'' . $this->source[$fd]->user . '\'@\'' .
             $server->getClientInfo($fd)['remote_ip'] . '\' (using password: YES)';
@@ -359,13 +363,13 @@ class ProxyServer extends BaseServer
      * 判断model
      *
      * @param string $model
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      *
      * @return string
      * @throws MySQLException
      */
-    private function compareModel(string $model, \swoole_server $server, int $fd)
+    private function compareModel(string $model, swoole_server $server, int $fd): string
     {
         /**
          * 拼接数据库键名
@@ -405,14 +409,14 @@ class ProxyServer extends BaseServer
     /**
      * 判断配置文件键是否存在
      *
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      * @param string $model
      * @param string $key
      *
      * @throws MySQLException
      */
-    private function existsDBKey(\swoole_server $server, int $fd, string $model, string $key)
+    private function existsDBKey(swoole_server $server, int $fd, string $model, string $key)
     {
         //如果没有写库则抛出异常
         if (!isset($this->dbConfig[$key])) {
@@ -430,12 +434,12 @@ class ProxyServer extends BaseServer
      * 验证
      *
      * @param BinaryPacket $bin
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      *
      * @throws MySQLException
      */
-    private function auth(BinaryPacket $bin, \swoole_server $server, int $fd)
+    private function auth(BinaryPacket $bin, swoole_server $server, int $fd)
     {
         if ($bin->data[0] == 20) {
             $checkAccount = $this->checkAccount($server, $fd, $this->source[$fd]->user, array_copy($bin->data, 4, 20));
@@ -453,6 +457,7 @@ class ProxyServer extends BaseServer
             }
         } else {
             $authPacket = new AuthPacket();
+            # 读取权限信息
             $authPacket->read($bin);
             $checkAccount = $this->checkAccount($server, $fd, $authPacket->user ?? '', $authPacket->password ?? []);
             if (!$checkAccount) {
@@ -565,20 +570,16 @@ class ProxyServer extends BaseServer
                     $this->connectReadState[$fd] = false;
                 }
                 break;
-            case MySQLPacket::$COM_PING:
-                break;
+
             case MySQLPacket::$COM_QUIT:
                 //禁用客户端退出
                 $data = '';
                 break;
+            case MySQLPacket::$COM_PING:
             case MySQLPacket::$COM_PROCESS_KILL:
-                break;
             case MySQLPacket::$COM_STMT_EXECUTE:
-                break;
             case MySQLPacket::$COM_STMT_CLOSE:
-                break;
             case MySQLPacket::$COM_HEARTBEAT:
-                break;
             default:
                 break;
         }
